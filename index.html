@@ -2,11 +2,210 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Chat App</title>
-    <link rel="stylesheet" href="style.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Sun Chat</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        html, body {
+            height: 95%;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            background-color: #f0e6ff;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            height: 95vh;
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #e6d9f2;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            position: relative;
+        }
+        .chat-header {
+            background-color: #9370db;
+            color: white;
+            padding: 15px;
+            text-align: center;
+            font-size: 1.2rem;
+            font-weight: 600;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+        .profile-area {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: rgba(255,255,255,0.2);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+        }
+        .profile-area img {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        .dropdown-menu {
+            position: absolute;
+            top: 70px;
+            right: 15px;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            z-index: 10;
+            display: none;
+            min-width: 200px;
+        }
+        .dropdown-menu.show {
+            display: block;
+        }
+        .dropdown-menu ul {
+            list-style-type: none;
+            padding: 10px 0;
+        }
+        .dropdown-menu ul li {
+            padding: 10px 15px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        .dropdown-menu ul li:hover {
+            background-color: #f0f0f0;
+        }
+        .dropdown-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 5;
+            display: none;
+        }
+        .dropdown-overlay.show {
+            display: block;
+        }
+        .chat-box {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 15px;
+            background-color: #f4f0ff;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .input-container {
+            display: flex;
+            padding: 10px;
+            background-color: #e6d9f2;
+            gap: 10px;
+            border-top: 1px solid #d0c0e0;
+        }
+        .input-container input {
+            flex-grow: 1;
+            padding: 12px;
+            border: 1px solid #9370db;
+            border-radius: 20px;
+            outline: none;
+            font-size: 1rem;
+            background-color: white;
+        }
+        .input-container button {
+            background-color: #9370db;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background-color 0.3s ease;
+        }
+        .input-container button:active {
+            background-color: #7a5db0;
+        }
+        .message {
+            max-width: 80%;
+            padding: 10px 15px;
+            border-radius: 15px;
+            word-wrap: break-word;
+            clear: both;
+            position: relative;
+            font-size: 1rem;
+        }
+        .message.user {
+            background-color: #d8bfff;
+            align-self: flex-end;
+            margin-left: auto;
+        }
+        .message.other {
+            background-color: #c0a0e6;
+            align-self: flex-start;
+        }
+        .message-sender {
+            font-size: 0.8rem;
+            color: #555;
+            margin-bottom: 5px;
+        }
+
+        /* Touch-friendly improvements */
+        @media (max-width: 480px) {
+            .container {
+                width: 100%;
+                height: 100vh;
+            }
+            .input-container {
+                padding: 10px;
+            }
+            .input-container input,
+            .input-container button {
+                padding: 12px;
+                font-size: 16px; /* Prevent zoom on input focus */
+            }
+        }
+
+        /* Prevent text selection and zoom on double-tap */
+        body {
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            -khtml-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            touch-action: manipulation;
+        }
+
+    	.message-timestamp {
+    		font-size: 10px;
+    		color: #888;
+    		margin-top: 4px;
+    		text-align: right;
+	}
+    </style>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
-        import { getFirestore, collection, addDoc, onSnapshot, serverTimestamp, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
+        import { 
+            getFirestore, 
+            collection, 
+            addDoc, 
+            onSnapshot, 
+            serverTimestamp, 
+            query, 
+            orderBy, 
+            doc, 
+            setDoc,
+            deleteDoc,
+            getDocs 
+        } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyD94CvtAozw71g1OX5LIgKDrD5_SEn4-Bw",
@@ -21,63 +220,208 @@
         // Initialize Firebase
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
-
         const chatBox = document.getElementById('chat-box');
+        const messageInput = document.getElementById('message');
+        const profileArea = document.getElementById('profile-area');
+        const dropdownMenu = document.getElementById('dropdown-menu');
+        const dropdownOverlay = document.getElementById('dropdown-overlay');
 
-        // Fetch messages from Firestore
-        function getMessages() {
-            const q = query(collection(db, "messages"), orderBy("timestamp"));
-            
-            onSnapshot(q, (snapshot) => {
-                chatBox.innerHTML = "";
-                snapshot.forEach((doc) => {
-                    const msg = doc.data();
-                    const div = document.createElement("div");
-                    div.classList.add("message");
-                    div.classList.add(msg.username === localStorage.getItem("username") ? "user" : "other");
-                    div.textContent = `${msg.username}: ${msg.message}`;
-                    chatBox.appendChild(div);
-                    chatBox.scrollTop = chatBox.scrollHeight;
-                });
-            });
+      // Prompt for username or use localStorage value
+let username = '';
+
+function promptUsername() {
+    // Check if username exists in localStorage
+    const storedUsername = localStorage.getItem('username');
+
+    if (storedUsername) {
+        username = storedUsername;  // Use stored username
+    } else {
+        // Prompt for username if not found in localStorage
+        username = prompt("Please enter your username:", "");
+        while (!username) {
+            username = prompt("Username cannot be empty. Please enter your username:");
         }
+
+        // Save username to localStorage
+        localStorage.setItem('username', username);
+
+        // Save user to Firestore collection with timestamp
+        const userRef = doc(db, "users", username);
+        setDoc(userRef, {
+            username: username,
+            joinedAt: serverTimestamp()
+        }, { merge: true });
+    }
+
+    // Update profile image
+    const profileImg = document.getElementById('profile-img');
+    profileImg.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`;
+}
+
+
+// Fetch messages from Firestore
+function getMessages() {
+    const q = query(collection(db, "messages"), orderBy("timestamp"));
+
+    onSnapshot(q, (snapshot) => {
+        chatBox.innerHTML = "";
+        snapshot.forEach((doc) => {
+            const msg = doc.data();
+            const msgId = doc.id;  // Store message ID for deletion
+
+            const div = document.createElement("div");
+            div.classList.add("message");
+            div.classList.add(msg.username === username ? "user" : "other");
+
+            // Add sender name for other messages
+            if (msg.username !== username) {
+                const senderDiv = document.createElement("div");
+                senderDiv.classList.add("message-sender");
+                senderDiv.textContent = msg.username;
+                div.appendChild(senderDiv);
+            }
+
+            const messageText = document.createElement("div");
+            messageText.textContent = msg.message;
+            messageText.classList.add("message-text");
+
+            // Add timestamp
+            const timestamp = document.createElement("div");
+            timestamp.classList.add("message-timestamp");
+
+            if (msg.timestamp) {
+                const date = msg.timestamp.toDate();
+                const timeString = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                timestamp.textContent = timeString;
+            } else {
+                timestamp.textContent = "Time unknown";
+            }
+
+            // Add delete button
+            if (msg.username === username) {
+                const deleteBtn = document.createElement("button");
+                deleteBtn.textContent = "🗑️";
+                deleteBtn.style.border = "none";
+                deleteBtn.style.background = "transparent";
+                deleteBtn.style.cursor = "pointer";
+                deleteBtn.style.marginLeft = "10px";
+                deleteBtn.title = "Delete message";
+
+                deleteBtn.onclick = () => deleteMessage(msgId);
+                div.appendChild(deleteBtn);
+            }
+
+            div.appendChild(messageText);
+            div.appendChild(timestamp);
+            
+            chatBox.appendChild(div);
+        });
+
+        // Scroll to bottom
+        chatBox.scrollTop = chatBox.scrollHeight;
+    });
+}
+
+// Function to delete individual message
+async function deleteMessage(messageId) {
+    const confirmDelete = window.confirm("Are you sure you want to delete this message?");
+    if (!confirmDelete) return;
+
+    const msgRef = doc(db, "messages", messageId);
+    await deleteDoc(msgRef);
+}
+
+
+
+
 
         // Send message to Firestore
         async function sendMessage() {
-            const username = document.getElementById("username").value;
-            const message = document.getElementById("message").value;
-
-            if (!username || !message) return;
-
-            localStorage.setItem("username", username);
+            const message = messageInput.value.trim();
+            if (!message) return;
 
             await addDoc(collection(db, "messages"), {
                 username,
                 message,
                 timestamp: serverTimestamp()
             });
-
-            document.getElementById("message").value = "";
+            messageInput.value = "";
         }
 
-        // Initialize messages
-        window.addEventListener("DOMContentLoaded", () => {
-            getMessages();
+        // Clear all messages
+        async function clearAllMessages() {
+            const confirm = window.confirm("Are you sure you want to clear all messages?");
+            if (!confirm) return;
+
+            const messagesRef = collection(db, "messages");
+            const querySnapshot = await getDocs(messagesRef);
+            
+            querySnapshot.forEach(async (doc) => {
+                await deleteDoc(doc.ref);
+            });
+        }
+
+        // Toggle dropdown menu
+        function toggleDropdown() {
+            dropdownMenu.classList.toggle('show');
+            dropdownOverlay.classList.toggle('show');
+        }
+
+        // Close dropdown when clicking outside
+        function closeDropdown() {
+            dropdownMenu.classList.remove('show');
+            dropdownOverlay.classList.remove('show');
+        }
+
+        // Add event listener for Enter key
+        messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
         });
 
-        // Attach the function to the window object for button click
+        // Initialize on page load
+        window.addEventListener("DOMContentLoaded", () => {
+            promptUsername();
+            getMessages();
+
+            // Event listeners for dropdown
+            profileArea.addEventListener('click', toggleDropdown);
+            dropdownOverlay.addEventListener('click', closeDropdown);
+        });
+
+        // Prevent zoom on input focus for iOS
+        messageInput.addEventListener('focus', () => {
+            document.querySelector('meta[name="viewport"]').setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no');
+        });
+
+        messageInput.addEventListener('blur', () => {
+            document.querySelector('meta[name="viewport"]').setAttribute('content', 'width=device-width, initial-scale=1.0');
+        });
+
+        // Attach functions to window object
         window.sendMessage = sendMessage;
+        window.clearAllMessages = clearAllMessages;
     </script>
 </head>
 <body>
     <div class="container">
         <div class="chat-header">
-            <h2>Sun Chat</h2>
+            Sun Chat
+            <div id="profile-area" class="profile-area">
+                <img id="profile-img" src="" alt="Profile" />
+            </div>
         </div>
-        <div id="chat-box" class="chat-box" style="height: 400px; overflow-y: auto; border: 1px solid #ccc; padding: 10px;"></div>
-
+        <div id="dropdown-overlay" class="dropdown-overlay"></div>
+        <div id="dropdown-menu" class="dropdown-menu">
+            <ul>
+                <li onclick="clearAllMessages()">Clear All Messages</li>
+                <li>Change Username</li>
+                <li>About</li>
+            </ul>
+        </div>
+        <div id="chat-box" class="chat-box"></div>
         <div class="input-container">
-            <input id="username" placeholder="Username" />
             <input id="message" placeholder="Type a message..." />
             <button onclick="sendMessage()">Send</button>
         </div>
